@@ -32,6 +32,25 @@ jobs:
       - name: Trigger deployment
         if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip') }}
         run: curl ${{ secrets.RENDER_DEPLOY_HOOK }}
+      - name: Deployment success notification
+        if: ${{ success() && github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip') }}
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: Success
+          title: "A new version of Pokedex was deployed"
+          description: "https://full-stack-open-pokedex-allm.onrender.com/"
+          color: 0x00ff00
+          nodetail: true
+      - name: Build failure notification
+        if: ${{ failure() }}
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: Failure
+          title: "Build failed"
+          description: "Commit ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha || github.sha }} broke the build."
+          color: 0xff0000
   tag_release:
     needs: [simple_deployment_pipeline]
     runs-on: ubuntu-latest
