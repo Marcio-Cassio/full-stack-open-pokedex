@@ -9,7 +9,7 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  simple_deployment_pipeline:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -20,20 +20,84 @@ jobs:
         run: npm install
       - name: Check style
         run: npm run eslint
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install
       - name: Build
         run: npm run build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install
       - name: Test
-        run: npm test 
+        run: npm test
+
+  e2e:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
         timeout-minutes: 10
       - name: Run Playwright tests
         run: npm run test:e2e
+
+  deploy:
+    needs: [lint, test, e2e]
+    if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip') }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Trigger deployment
-        if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip') }}
         run: curl ${{ secrets.RENDER_DEPLOY_HOOK }}
+
+  tag_release:
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+
+  notify_success:
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    steps:
       - name: Deployment success notification
-        if: ${{ success() && github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip') }}
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
@@ -42,8 +106,13 @@ jobs:
           description: "https://full-stack-open-pokedex-allm.onrender.com/"
           color: 0x00ff00
           nodetail: true
+
+  notify_failure:
+    needs: [lint, build, test, e2e, deploy]
+    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Build failure notification
-        if: ${{ failure() }}
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
@@ -51,16 +120,3 @@ jobs:
           title: "Build failed"
           description: "Commit ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha || github.sha }} broke the build."
           color: 0xff0000
-  tag_release:
-    needs: [simple_deployment_pipeline]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - name: Bump version and push tag
-        if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip') }}
-        uses: anothrNick/github-tag-action@1.75.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: patch
