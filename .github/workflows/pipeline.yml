@@ -49,7 +49,7 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: Failure
           title: "Build failed"
-          description: "Commit ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }} broke the build."
+          description: "Commit ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha || github.sha }} broke the build."
           color: 0xff0000
   tag_release:
     needs: [simple_deployment_pipeline]
