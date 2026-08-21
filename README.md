@@ -21,3 +21,4 @@ Start by running `npm install` inside the project folder
 `npm run start-prod` to run your production build
 Testing the pull request workflow trigger.
 Testing the skip marker.
+Pipeline verification
