@@ -42,4 +42,6 @@ const App = () => {
   )
 }
 
+const unusedVar = 42
+
 export default App
