@@ -1,24 +1,19 @@
-# Full Stack open CI/CD
+# Full Stack Open — Part 11: CI/CD
 
-This repository is used for the CI/CD module of the Full Stack Open course
+Exercise repository for the Continuous Integration / Continuous Delivery
+part of the Full Stack Open course.
 
 ## Deployed application
 
-https://full-stack-open-pokedex-allm.onrender.com
+Pokedex: https://full-stack-open-pokedex-allm.onrender.com/
 
-## Commands
+## Exercise 11.21 / 11.22 repository
 
-Start by running `npm install` inside the project folder
+Bloglist Fullstack: https://github.com/Marcio-Cassio/bloglist-fullstack
 
-`npm start` to run the webpack dev server
+## Pipeline
 
-`npm test` to run tests
-
-`npm run eslint` to run eslint
-
-`npm run build` to make a production build
-
-`npm run start-prod` to run your production build
-Testing the pull request workflow trigger.
-Testing the skip marker.
-Pipeline verification
+The deployment pipeline runs lint, unit tests, and Playwright end-to-end
+tests on every pull request. Merges to `main` additionally deploy to Render,
+bump the version tag, and notify Discord. A separate scheduled workflow
+performs a periodic health check against the deployed app.
